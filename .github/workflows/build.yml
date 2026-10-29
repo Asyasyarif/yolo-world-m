@@ -1,0 +1,50 @@
+name: Build Cog image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      # weights are gitignored; fetch them into the workspace so they are IN the build context
+      - name: Fetch model weights
+        run: |
+          mkdir -p weights/clip
+          curl -L -o weights/yolov8m-worldv2.pt \
+            https://github.com/ultralytics/assets/releases/download/v8.4.0/yolov8m-worldv2.pt
+          curl -L -o weights/clip/ViT-B-32.pt \
+            https://openaipublic.azureedge.net/clip/models/40d365715913c9da98579312b702a82c18be219cc2a73407c4526f58eba950af/ViT-B-32.pt
+
+      # legacy docker cog builds via Dockerfile; use buildx so layer cache applies
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install cog CLI
+        run: |
+          sudo curl -o /usr/local/bin/cog -L \
+            https://github.com/replicate/cog/releases/latest/download/cog_$(uname -s)_$(uname -m)
+          sudo chmod +x /usr/local/bin/cog
+          cog --version
+
+      - name: Build cog image
+        run: cog build
+        env:
+          DOCKER_BUILDKIT: 1
+
+      - name: Sanity check image
+        run: |
+          IMG=$(docker images --format '{{.Repository}}:{{.Tag}}' | head -1)
+          echo "image: $IMG"
+          docker run --rm "$IMG" python -c "import ultralytics, av, cv2; print('deps ok')"
+
+      - name: Push to r8.im
+        env:
+          COG_TOKEN: ${{ secrets.COG_TOKEN }}
+        run: echo "$COG_TOKEN" | cog login --token-stdin && cog push r8.im/asyasyarif/yolo-world-m
