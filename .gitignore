@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+__pycache__/
+*.pyc
+
+# build artifacts / temporary outputs
+out-orange/
+*.mp4
+*.json
+!pipeline/**/*.py
+
+# cog build cache
+.cog/
+
+# large weights — fetched at build/download, not committed
+weights/*.pt
+weights/clip/

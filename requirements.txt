@@ -1,0 +1,5 @@
+ultralytics==8.4.*  # pin: tested 8.4 tracker API (BYTETracker(args) namespace)
+# GPU stack (torch/torchvision) resolved by Docker base image; do NOT install separately here.
+opencv-python-headless
+av
+numpy
