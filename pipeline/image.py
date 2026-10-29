@@ -22,6 +22,7 @@ def process_image(
     classes: List[str],
     display_labels: List[str] = None,
     confidence: float = 0.25,
+    iou_threshold: float = 0.7,
     tracker: str = "bytetrack",
     max_num_boxes: int = 10,
     color_filter: List[str] = None,
@@ -41,7 +42,7 @@ def process_image(
     json_path = os.path.join(workdir, "timeline.json")
 
     model.set_classes(classes)
-    results = model.detect(img, conf=confidence)
+    results = model.detect(img, conf=confidence, iou=iou_threshold)
     ids = FrameTracker(tracker, 1)  # single frame: no motion history
     dets = np.empty((0, 4))
     confs = np.empty((0,))

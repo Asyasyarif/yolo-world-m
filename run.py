@@ -30,52 +30,37 @@ class Runner(BaseRunner):
 
     def run(
         self,
-        video: Path = Input(description="Video input (atau gambar JPG/PNG)"),
+        video: Path = Input(description="Input video (MP4/MOV) or image (JPG/PNG)"),
         classes: str = Input(
             default="person,car,motorcycle,bicycle",
-            description="Object classes, separated by commas",
+            description=(
+                "Open-vocabulary class prompts, comma-separated. "
+                "Optionally attach a pixel color filter per class with @hex: "
+                "e.g. 'soccer ball @#808080' keeps only gray-ish detections. "
+                "Use English words — the text encoder is English-only."
+            ),
         ),
-        confidence: float = Input(default=0.25, ge=0.05, le=0.95),
-        iou_threshold: float = Input(default=0.7, ge=0.05, le=0.95),
-        tracker: str = Input(default="bytetrack", choices=["bytetrack", "botsort"]),
-        show_confidence: bool = Input(default=True),
-        show_track_id: bool = Input(default=True),
-        preserve_audio: bool = Input(default=True),
+        confidence: float = Input(default=0.25, ge=0.05, le=0.95,
+                                  description="Detection confidence threshold"),
+        iou_threshold: float = Input(default=0.7, ge=0.05, le=0.95,
+                                     description="NMS IoU threshold"),
+        tracker: str = Input(default="bytetrack", choices=["bytetrack", "botsort"],
+                             description="Multi-object tracker"),
+        show_confidence: bool = Input(default=True,
+                                      description="Show confidence % in video labels"),
+        show_track_id: bool = Input(default=True,
+                                    description="Show track ID in video labels"),
+        preserve_audio: bool = Input(default=True,
+                                     description="Copy the input's audio track to the output MP4"),
         max_num_boxes: int = Input(
             default=10,
             ge=1, le=300,
             description="Max detections kept per frame (highest-confidence wins)",
         ),
-        display_names: str = Input(
-            default="",
-            description=(
-                "Optional display labels, comma-separated, same order as classes. "
-                "Empty = use classes as-is. Detection uses the precise classes "
-                "(e.g. 'soccer ball' for accuracy) while video/JSON show these "
-                "(e.g. 'ball')."
-            ),
-        ),
-        color_filter: str = Input(
-            default="",
-            description=(
-                "Keep only detections whose pixel color matches, comma-separated. "
-                "Options: red, orange, yellow, green, cyan, blue, purple, "
-                "white, gray, black. Empty = keep all colors. "
-                "Filters detections only; class_name is not renamed."
-            ),
-        ),
     ) -> Output:
         labels, colors = self._parse_classes(classes)
 
-        disp = [x.strip() for x in display_names.split(",") if x.strip()]
-        if disp and len(disp) != len(labels):
-            raise ValueError(
-                f"display_names must have same count as classes ({len(labels)}), got {len(disp)}"
-            )
-        display_labels = disp if disp else labels
-
-        if not colors:  # explicit color_filter input still wins
-            colors = [c.strip().lower() for c in color_filter.split(",") if c.strip()]
+        display_labels = labels
 
         # ponytail: no context manager — output dir must outlive Cog's file pickup
         workdir = tempfile.mkdtemp(prefix="video-timeline-")
@@ -90,6 +75,7 @@ class Runner(BaseRunner):
                 classes=labels,
                 display_labels=display_labels,
                 confidence=confidence,
+                iou_threshold=iou_threshold,
                 tracker=tracker,
                 max_num_boxes=max_num_boxes,
                 color_filter=colors,
@@ -103,6 +89,7 @@ class Runner(BaseRunner):
             classes=labels,
             display_labels=display_labels,
             confidence=confidence,
+            iou_threshold=iou_threshold,
             tracker=tracker,
             preserve_audio=preserve_audio,
             max_num_boxes=max_num_boxes,

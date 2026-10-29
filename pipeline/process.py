@@ -71,6 +71,7 @@ def process_video(
     classes: List[str],
     display_labels: List[str] = None,
     confidence: float = 0.25,
+    iou_threshold: float = 0.7,
     tracker: str = "bytetrack",
     preserve_audio: bool = True,
     max_num_boxes: int = 10,
@@ -110,7 +111,7 @@ def process_video(
                 img = frame.to_ndarray(format="bgr24")
                 h, w = img.shape[:2]
 
-                results = model.detect(img, conf=confidence)
+                results = model.detect(img, conf=confidence, iou=iou_threshold)
                 dets = np.empty((0, 4), dtype=float)
                 confs = np.empty((0,), dtype=float)
                 clss = np.empty((0,), dtype=int)
