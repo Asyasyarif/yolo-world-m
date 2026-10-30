@@ -57,7 +57,7 @@ class Runner(BaseRunner):
             ge=1, le=300,
             description="Max detections kept per frame (highest-confidence wins)",
         ),
-        timeline: str = Input(
+        output_zip: str = Input(
             default="zip",
             choices=["zip", "none"],
             description=(
@@ -90,7 +90,7 @@ class Runner(BaseRunner):
                 color_filter=colors,
             )
             return self._package(
-                image_path, json_path, timeline, workdir, "output.jpg", "timeline.json"
+                image_path, json_path, output_zip, workdir, "output.jpg", "timeline.json"
             )
 
         mp4_path, json_path, timeline_obj = process_video(
@@ -107,17 +107,17 @@ class Runner(BaseRunner):
             color_filter=colors,
         )
         return self._package(
-            mp4_path, json_path, timeline_obj, workdir, "output.mp4", "timeline.json"
+            mp4_path, json_path, output_zip, workdir, "output.mp4", "timeline.json"
         )
 
     @staticmethod
-    def _package(primary_path, timeline_path, want_timeline, workdir, out_name, tl_name) -> Path:
+    def _package(primary_path, timeline_path, wants_zip, workdir, out_name, tl_name) -> Path:
         """Single-file output: ZIP when timeline requested, media file alone otherwise.
 
         ponytail: UI Replicate auto-renders only a single-file output; dict
         output shows raw JSON, so the bundle goes out as one ZIP instead.
         """
-        if want_timeline != "zip":
+        if wants_zip != "zip":
             return Path(primary_path)
         zip_path = os.path.join(workdir, "output.zip")
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
