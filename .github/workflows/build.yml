@@ -42,7 +42,7 @@ jobs:
         run: |
           IMG=$(docker images --format '{{.Repository}}:{{.Tag}}' | head -1)
           echo "image: $IMG"
-          docker run --rm "$IMG" python -c "import ultralytics, av, cv2; print('deps ok')"
+          docker run --rm "$IMG" python -c "import ultralytics, clip, lap, av, cv2; print('deps ok')"
 
       - name: Push to r8.im
         env:
