@@ -3,3 +3,6 @@ ultralytics==8.4.*  # pin: tested 8.4 tracker API (BYTETracker(args) namespace)
 opencv-python-headless
 av
 numpy
+# YOLO-World deps ultralytics would otherwise pip-install at runtime (fails on GPU image)
+lap>=0.5.12
+clip @ git+https://github.com/ultralytics/CLIP.git@7ffa84b3bfa40c42ecc1c77147a855e69cb2dd40
