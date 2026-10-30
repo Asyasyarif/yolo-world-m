@@ -57,13 +57,12 @@ class Runner(BaseRunner):
             ge=1, le=300,
             description="Max detections kept per frame (highest-confidence wins)",
         ),
-        output_zip: str = Input(
-            default="zip",
-            choices=["zip", "none"],
+        output_zip: bool = Input(
+            default=False,
             description=(
-                "Output format: 'zip' returns a ZIP containing the video "
-                "(output.mp4/output.jpg) plus timeline.json; 'none' returns "
-                "only the video file."
+                "Deliver the result as a single ZIP (video + timeline.json). "
+                "Unchecked = the annotated video file itself, shown as a "
+                "playable preview in the UI."
             ),
         ),
     ) -> Path:
@@ -117,7 +116,7 @@ class Runner(BaseRunner):
         ponytail: UI Replicate auto-renders only a single-file output; dict
         output shows raw JSON, so the bundle goes out as one ZIP instead.
         """
-        if wants_zip != "zip":
+        if wants_zip:
             return Path(primary_path)
         zip_path = os.path.join(workdir, "output.zip")
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
