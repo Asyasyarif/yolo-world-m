@@ -116,7 +116,7 @@ class Runner(BaseRunner):
         ponytail: UI Replicate auto-renders only a single-file output; dict
         output shows raw JSON, so the bundle goes out as one ZIP instead.
         """
-        if wants_zip:
+        if not wants_zip:
             return Path(primary_path)
         zip_path = os.path.join(workdir, "output.zip")
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
