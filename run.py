@@ -4,12 +4,14 @@ Size dipilih saat build, bukan saat runtime: repo ini = "m".
 (Repo yolo-timeline-video memakai "s" — dua model terpisah di Replicate
 supaya kalkulasi harga per model bersih.)
 
-Output: dict { video: Path (-> URL di API), timeline: dict (inline JSON) }.
-Timeline ikut inline di output prediction — satu request, tanpa file kedua.
+Output selalu satu file `Path` supaya UI Replicate menampilkan player/download:
+  timeline="zip"  -> ZIP (output.mp4 + timeline.json)
+  timeline="none" -> MP4/JPG saja
 """
 
 import os
 import tempfile
+import zipfile
 
 from cog import BaseRunner, Input, Path
 
@@ -55,7 +57,16 @@ class Runner(BaseRunner):
             ge=1, le=300,
             description="Max detections kept per frame (highest-confidence wins)",
         ),
-    ) -> dict:
+        timeline: str = Input(
+            default="zip",
+            choices=["zip", "none"],
+            description=(
+                "Output format: 'zip' returns a ZIP containing the video "
+                "(output.mp4/output.jpg) plus timeline.json; 'none' returns "
+                "only the video file."
+            ),
+        ),
+    ) -> Path:
         labels, colors = self._parse_classes(classes)
 
         display_labels = labels
@@ -66,7 +77,7 @@ class Runner(BaseRunner):
         model = self.model
         is_image = str(video).lower().endswith((".jpg", ".jpeg", ".png"))
         if is_image:
-            image_path, json_path, timeline = process_image(
+            image_path, json_path, _tl = process_image(
                 input_image=str(video),
                 workdir=workdir,
                 model=model,
@@ -78,9 +89,11 @@ class Runner(BaseRunner):
                 max_num_boxes=max_num_boxes,
                 color_filter=colors,
             )
-            return {"video": Path(image_path), "timeline": timeline}
+            return self._package(
+                image_path, json_path, timeline, workdir, "output.jpg", "timeline.json"
+            )
 
-        mp4_path, json_path, timeline = process_video(
+        mp4_path, json_path, timeline_obj = process_video(
             input_video=str(video),
             workdir=workdir,
             model=model,
@@ -93,7 +106,24 @@ class Runner(BaseRunner):
             max_num_boxes=max_num_boxes,
             color_filter=colors,
         )
-        return {"video": Path(mp4_path), "timeline": timeline}
+        return self._package(
+            mp4_path, json_path, timeline_obj, workdir, "output.mp4", "timeline.json"
+        )
+
+    @staticmethod
+    def _package(primary_path, timeline_path, want_timeline, workdir, out_name, tl_name) -> Path:
+        """Single-file output: ZIP when timeline requested, media file alone otherwise.
+
+        ponytail: UI Replicate auto-renders only a single-file output; dict
+        output shows raw JSON, so the bundle goes out as one ZIP instead.
+        """
+        if want_timeline != "zip":
+            return Path(primary_path)
+        zip_path = os.path.join(workdir, "output.zip")
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.write(primary_path, arcname=out_name)
+            zf.write(timeline_path, arcname=tl_name)
+        return Path(zip_path)
 
     # ponytail: staticmethod supaya bisa dites tanpa instance Cog
     @staticmethod
