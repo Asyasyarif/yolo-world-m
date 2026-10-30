@@ -1,4 +1,4 @@
-"""Single-image path: annotated JPG + one-frame timeline.json."""
+"""Single-image path: annotated JPG + timeline dict (+ timeline.json file)."""
 
 from __future__ import annotations
 
@@ -26,8 +26,8 @@ def process_image(
     tracker: str = "bytetrack",
     max_num_boxes: int = 10,
     color_filter: List[str] = None,
-) -> Tuple[str, str]:
-    """Returns (jpg_path, json_path). No video decode/encode involved."""
+) -> Tuple[str, str, dict]:
+    """Returns (jpg_path, json_path, timeline_dict). No video decode/encode involved."""
     if display_labels is None:
         display_labels = list(classes)
     if color_filter is None:
@@ -108,4 +108,4 @@ def process_image(
     }
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(timeline, f, ensure_ascii=False)
-    return jpg_path, json_path
+    return jpg_path, json_path, timeline

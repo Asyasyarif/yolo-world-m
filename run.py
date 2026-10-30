@@ -1,14 +1,17 @@
-"""Cog Runner — YOLO-World video + JSON timeline (PLAN §5).
+"""Cog Runner — YOLO-World video + timeline (PLAN §5).
 
 Size dipilih saat build, bukan saat runtime: repo ini = "m".
 (Repo yolo-timeline-video memakai "s" — dua model terpisah di Replicate
 supaya kalkulasi harga per model bersih.)
+
+Output: dict { video: Path (-> URL di API), timeline: dict (inline JSON) }.
+Timeline ikut inline di output prediction — satu request, tanpa file kedua.
 """
 
 import os
 import tempfile
 
-from cog import BaseRunner, BaseModel, Input, Path
+from cog import BaseRunner, Input, Path
 
 from pipeline.detector import Detector
 from pipeline.describe import hex_to_hsv
@@ -16,11 +19,6 @@ from pipeline.image import process_image
 from pipeline.process import process_video
 
 MODEL_SIZE = os.environ.get("YOLO_WORLD_SIZE", "m")
-
-
-class Output(BaseModel):
-    video: Path
-    timeline: Path
 
 
 class Runner(BaseRunner):
@@ -57,7 +55,7 @@ class Runner(BaseRunner):
             ge=1, le=300,
             description="Max detections kept per frame (highest-confidence wins)",
         ),
-    ) -> Output:
+    ) -> dict:
         labels, colors = self._parse_classes(classes)
 
         display_labels = labels
@@ -68,7 +66,7 @@ class Runner(BaseRunner):
         model = self.model
         is_image = str(video).lower().endswith((".jpg", ".jpeg", ".png"))
         if is_image:
-            image_path, json_path = process_image(
+            image_path, json_path, timeline = process_image(
                 input_image=str(video),
                 workdir=workdir,
                 model=model,
@@ -80,9 +78,9 @@ class Runner(BaseRunner):
                 max_num_boxes=max_num_boxes,
                 color_filter=colors,
             )
-            return Output(video=Path(image_path), timeline=Path(json_path))
+            return {"video": Path(image_path), "timeline": timeline}
 
-        mp4_path, json_path = process_video(
+        mp4_path, json_path, timeline = process_video(
             input_video=str(video),
             workdir=workdir,
             model=model,
@@ -95,7 +93,7 @@ class Runner(BaseRunner):
             max_num_boxes=max_num_boxes,
             color_filter=colors,
         )
-        return Output(video=Path(mp4_path), timeline=Path(json_path))
+        return {"video": Path(mp4_path), "timeline": timeline}
 
     # ponytail: staticmethod supaya bisa dites tanpa instance Cog
     @staticmethod

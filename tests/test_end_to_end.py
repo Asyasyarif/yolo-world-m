@@ -62,7 +62,7 @@ def test_end_to_end():
         src = os.path.join(d, "src.mp4")
         _make_test_video(src, with_audio=True)
         work = os.path.join(d, "work")
-        mp4, js = process_video(
+        mp4, js, timeline = process_video(
             input_video=src, workdir=work, model=FakeDetector(),
             classes=["person"], confidence=0.25, tracker="bytetrack",
             preserve_audio=True,
@@ -73,7 +73,8 @@ def test_end_to_end():
         with open(js) as f:
             doc = json.load(f)
         n = _probe_frames(mp4)
-        assert len(doc["frames"]) == n, f"{len(doc['frames'])} frames vs {n} decoded"
+        assert len(timeline["frames"]) == n, f"{len(timeline['frames'])} frames vs {n} decoded"
+        assert len(doc["frames"]) == n
         assert doc["video"]["total_frames"] == n
 
         # acceptance: frame_index monotonic 0..n-1, no gaps, no dupes

@@ -98,9 +98,7 @@ def test_timeline_frame_writer():
         meta = make_video_meta("output.mp4", 128, 72, 30, 3, 100)
         header = {"schema_version": "1.0.0", "video": meta,
                   "model": {"tracker": "bytetrack"}}
-        fw.finalize(j, header)
-        with open(j) as f:
-            doc = json.load(f)
+        doc = fw.finalize(j, header)
         assert doc["schema_version"] == "1.0.0"
         assert doc["video"]["fps_num"] == 30
         assert [fr["frame_index"] for fr in doc["frames"]] == [0, 1, 2]

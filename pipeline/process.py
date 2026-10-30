@@ -1,4 +1,4 @@
-"""End-to-end video -> (annotated MP4, timeline.json) pipeline."""
+"""End-to-end video -> (annotated MP4, timeline.json + inline timeline dict) pipeline."""
 
 from __future__ import annotations
 
@@ -76,8 +76,8 @@ def process_video(
     preserve_audio: bool = True,
     max_num_boxes: int = 10,
     color_filter: List = None,
-) -> Tuple[str, str]:
-    """Returns (mp4_path, json_path). Raises VideoError on invalid input.
+) -> Tuple[str, str, dict]:
+    """Returns (mp4_path, json_path, timeline_dict). Raises VideoError on invalid input.
 
     display_labels: optional renames shown in video/JSON (same order as classes);
                     detection always uses the precise `classes` prompts.
@@ -183,7 +183,7 @@ def process_video(
         },
         "summary": _class_summary(jsonl_tmp, display_labels),
     }
-    fw.finalize(json_path, header)
+    timeline = fw.finalize(json_path, header)
 
     final_mp4 = os.path.join(workdir, "output.mp4")
     audio_path = os.path.join(workdir, "audio.m4a")
@@ -196,4 +196,4 @@ def process_video(
         finalize(raw_mp4)
         os.replace(raw_mp4, final_mp4)
 
-    return final_mp4, json_path
+    return final_mp4, json_path, timeline

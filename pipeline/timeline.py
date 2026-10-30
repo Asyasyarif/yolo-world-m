@@ -43,18 +43,28 @@ class FrameWriter:
     def close(self) -> None:
         self.f.close()
 
-    def finalize(self, json_path: str, header: dict) -> None:
-        """Assemble {header..., frames: [...]} by streaming the JSONL lines."""
-        with open(json_path, "w", encoding="utf-8") as out:
-            out.write(json.dumps(header, ensure_ascii=False)[:-1])  # strip closing }
-            out.write(', "frames": [')
-            with open(self.path, encoding="utf-8") as lines:
-                for i, line in enumerate(lines):
-                    if i:
-                        out.write(", ")
-                    out.write(line.strip())
-            out.write("]}\n")
+    def finalize(self, json_path: str, header: dict) -> dict:
+        """Assemble {header..., frames: [...]} from the JSONL lines.
+
+        Returns the timeline as a dict (inline-able in a Cog dict output);
+        also written to json_path for consumers that want the file.
+        """
+        frames = []
+        with open(self.path, encoding="utf-8") as lines:
+            for line in lines:
+                if line.strip():
+                    frames.append(json.loads(line))
         os.remove(self.path)
+        timeline = {**header, "frames": frames}
+        with open(json_path, "w", encoding="utf-8") as out:
+            json.dump(timeline, out, ensure_ascii=False)
+        return timeline
 
 
-__all__ = ["SCHEMA_VERSION", "FrameWriter", "make_video_meta"]
+__all__ = ["SCHEMA_VERSION", "FrameWriter", "make_video_meta", "load_timeline"]
+
+
+def load_timeline(path: str) -> dict:
+    """Read a timeline.json back into a dict."""
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
