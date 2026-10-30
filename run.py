@@ -4,9 +4,9 @@ Size dipilih saat build, bukan saat runtime: repo ini = "m".
 (Repo yolo-timeline-video memakai "s" — dua model terpisah di Replicate
 supaya kalkulasi harga per model bersih.)
 
-Output selalu satu file `Path` supaya UI Replicate menampilkan player/download:
-  timeline="zip"  -> ZIP (output.mp4 + timeline.json)
-  timeline="none" -> MP4/JPG saja
+Output berupa list berisi satu file, sesuai schema array URI di Replicate:
+  output_zip=True  -> ZIP (output.mp4 + timeline.json)
+  output_zip=False -> MP4/JPG untuk preview
 """
 
 import os
@@ -65,7 +65,7 @@ class Runner(BaseRunner):
                 "playable preview in the UI."
             ),
         ),
-    ) -> Path:
+    ) -> list[Path]:
         labels, colors = self._parse_classes(classes)
 
         display_labels = labels
@@ -110,19 +110,16 @@ class Runner(BaseRunner):
         )
 
     @staticmethod
-    def _package(primary_path, timeline_path, wants_zip, workdir, out_name, tl_name) -> Path:
-        """Single-file output: ZIP when timeline requested, media file alone otherwise.
-
-        ponytail: UI Replicate auto-renders only a single-file output; dict
-        output shows raw JSON, so the bundle goes out as one ZIP instead.
-        """
+    def _package(primary_path, timeline_path, wants_zip, workdir, out_name, tl_name) -> list[Path]:
+        """One file in a list: media preview or a downloadable ZIP bundle."""
+        # ponytail: explicit file-list schema matches the array response on Replicate.
         if not wants_zip:
-            return Path(primary_path)
+            return [Path(primary_path)]
         zip_path = os.path.join(workdir, "output.zip")
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
             zf.write(primary_path, arcname=out_name)
             zf.write(timeline_path, arcname=tl_name)
-        return Path(zip_path)
+        return [Path(zip_path)]
 
     # ponytail: staticmethod supaya bisa dites tanpa instance Cog
     @staticmethod
