@@ -8,7 +8,7 @@ import numpy as np
 
 import os
 
-WEIGHTS_DIR = "weights"
+WEIGHTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "weights")
 SUPPORTED_SIZES = {"s", "m"}
 
 
@@ -27,9 +27,15 @@ class Detector:
     """Thin wrapper around ultralytics YOLOWorld; custom text classes per run."""
 
     def __init__(self, model_size: str = "s"):
+        import pathlib
+
+        import ultralytics.nn.text_model as text_model
         from ultralytics import YOLOWorld
 
         self.model_size = model_size
+        # ultralytics loads CLIP from <WEIGHTS_DIR>/clip, downloading there on
+        # miss. Point that at our bundled weights so it never fetches 338MB.
+        text_model.WEIGHTS_DIR = pathlib.Path(WEIGHTS_DIR)
         self.model = YOLOWorld(weights_path(model_size))
 
     def set_classes(self, labels: List[str]) -> None:
